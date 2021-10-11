@@ -1,0 +1,8 @@
+name                : score
+Artash              : 5.0
+aRtash              : 12.0
+arTash              : 9.0
+artash              : 11.0
+artash              : 11.0
+missss              : 4.0
+Helloworld          : 8.0
