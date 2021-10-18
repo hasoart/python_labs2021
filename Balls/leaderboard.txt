@@ -1,5 +1,0 @@
-name                : score
-Artash              : 3
-lakot lukut         : 4
-Qunnem berany       : 4
-artash              : 36
