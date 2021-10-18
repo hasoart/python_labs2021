@@ -23,12 +23,12 @@ pygame.display.update()
 clock = pygame.time.Clock()
 
 penalty = 3
-ball_count = 30
+ball_count = 5
 
 game = Game(game_size, dt, penalty, ball_count, ball_radius=(10, 30))
 score = ScoreSurface(score_size)
 handler = GameEventHandler(game, game_coords)
-leaderboard = Leaderboard('leaderboard.txt')
+leaderboard = Leaderboard('leaderboard.csv')
 
 game_finished = False
 
