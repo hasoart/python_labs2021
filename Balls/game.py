@@ -1,6 +1,6 @@
 import pygame
 
-from ball import Ball
+from ball import Ball, Ghost
 import styles
 
 
@@ -18,7 +18,7 @@ class Game:
         self.size = size
 
         self.pool = [Ball(size, ball_colors, ball_radius, ball_score)
-                     for _ in range(ball_count)]
+                     for _ in range(ball_count - 1)] + [Ghost(size, 100, 10)]
         self.balls_left = ball_count
         self.bg_color = bg_color
 
@@ -190,9 +190,9 @@ class FinalScreen:
 
 
 class Leaderboard:
-    def __init__(self, leaderboard_path='leaderboard.txt'):
+    def __init__(self, leaderboard_path='leaderboard.csv'):
         self.path = leaderboard_path
 
     def write(self, name, score):
         with open(self.path, 'a') as file:
-            file.write(f"{name:<20}: {score}\n")
+            file.write(f"{name},{score}\n")
