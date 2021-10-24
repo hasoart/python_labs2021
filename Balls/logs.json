@@ -1,0 +1,69 @@
+{
+    "8744885754967": {
+        "name": "GameEventHandler",
+        "properties": {
+            "position": [
+                1,
+                1
+            ]
+        },
+        "actions": [
+            {
+                "time": 1635080072.0515425,
+                "action": "Click registered at x:488, y:419"
+            },
+            {
+                "time": 1635080072.5822845,
+                "action": "Click registered at x:247, y:452"
+            },
+            {
+                "time": 1635080075.6933482,
+                "action": "Click registered at x:558, y:214"
+            },
+            {
+                "time": 1635080076.61738,
+                "action": "Click registered at x:556, y:538"
+            },
+            {
+                "time": 1635080077.2791018,
+                "action": "Click registered at x:443, y:430"
+            },
+            {
+                "time": 1635080077.9744039,
+                "action": "Click registered at x:136, y:500"
+            },
+            {
+                "time": 1635080078.7025762,
+                "action": "Click registered at x:248, y:151"
+            }
+        ]
+    },
+    "-1484895832476280788": {
+        "name": "Leaderboard",
+        "properties": {
+            "path": "leaderboard.csv"
+        },
+        "actions": [
+            {
+                "time": 1635080080.9396942,
+                "action": "Score saved. name='Artash', score=12"
+            }
+        ]
+    },
+    "8744885754971": {
+        "name": "FinalScreenHandler",
+        "properties": {
+            "leaderboard": "leaderboard.csv"
+        },
+        "actions": [
+            {
+                "time": 1635080080.9395208,
+                "action": "Sending write request to leaderboard"
+            },
+            {
+                "time": 1635080080.9397829,
+                "action": "Quit application"
+            }
+        ]
+    }
+}
