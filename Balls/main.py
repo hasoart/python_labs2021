@@ -2,6 +2,7 @@ import numpy as np
 import time
 
 from game import *
+from logger import *
 
 pygame.init()
 
@@ -23,12 +24,15 @@ pygame.display.update()
 clock = pygame.time.Clock()
 
 penalty = 3
-ball_count = 5
+pool_size = (5, 2)
+ball_count = sum(pool_size)
 
-game = Game(game_size, dt, penalty, ball_count, ball_radius=(10, 30))
+logger = Logger('logs.json')
+
+game = Game(size=game_size, dt=dt, score_penalty=penalty, pool_size=pool_size, ball_radius=(10, 30))
 score = ScoreSurface(score_size)
-handler = GameEventHandler(game, game_coords)
-leaderboard = Leaderboard('leaderboard.csv')
+handler = GameEventHandler(game, game_coords, logger=logger)
+leaderboard = Leaderboard('leaderboard.csv', logger=logger)
 
 game_finished = False
 
@@ -57,7 +61,7 @@ while not game_finished:
     clock.tick(FPS)
 
 final_screen = FinalScreen(size=final_screen_size, score=game.get_score())
-handler = FinalScreenHandler(final_screen, leaderboard)
+handler = FinalScreenHandler(final_screen, leaderboard, logger=logger)
 
 while True:
     handler.handle()
