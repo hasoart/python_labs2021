@@ -1,5 +1,7 @@
 import math
 from random import randrange as rnd, choice
+from time import time
+import json
 
 import pygame
 
@@ -19,10 +21,23 @@ ORANGE = 0xFF7200
 GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
 pygame.font.init()
-score_font = pygame.font.SysFont('Comic Sans MS', 20)
+
+small_font = pygame.font.SysFont('Comic Sans MS', 20)
+big_font = pygame.font.SysFont('Comic Sans MS', 60)
 
 WIDTH = 800
 HEIGHT = 600
+
+
+def exit_program():
+    """
+    exit_program()
+    returns - None
+
+    exits the program
+    """
+    pygame.quit()
+    exit(0)
 
 
 class Ball:
@@ -206,8 +221,8 @@ class TargetHorizontal(Target):
     def move(self, dt=1):
         self.x += self.v * dt
 
-        if not -100 < self.x < 880:
-            self.x = -99 if self.x >= 880 else 879
+        if not -self.r < self.x < 800 + self.r:
+            self.x = (1 - self.r) if (self.x >= 800 + self.r) else (799 + self.r)
 
 
 class TargetVertical(Target):
@@ -226,8 +241,8 @@ class TargetVertical(Target):
     def move(self, dt=1):
         self.y += self.v * dt
 
-        if not -100 < self.y < 700:
-            self.y = -99 if self.x >= 700 else 699
+        if not -self.r < self.y < 600 + self.r:
+            self.y = (1 - self.r) if (self.y >= 600 + self.r) else (599 + self.r)
 
 
 pygame.init()
@@ -237,18 +252,17 @@ balls = []
 
 clock = pygame.time.Clock()
 gun = Gun(screen)
-targets = [TargetHorizontal() for _ in range(10)] +\
-          [TargetVertical() for _ in range(10)]
+targets = [TargetHorizontal() for _ in range(3)] +\
+          [TargetVertical() for _ in range(3)]
 score = 0
 
 finished = False
+start_time = time()
 
-while not finished:
+while targets:
     screen.fill(WHITE)
-    gun.draw()
 
-    text = score_font.render(f'Score {score}', True, BLACK)
-    screen.blit(text, (20, 20))
+    gun.draw()
 
     for target in targets:
         target.move()
@@ -257,12 +271,19 @@ while not finished:
     for b in balls:
         b.draw()
 
+    score_text = small_font.render(f'Score {score}', True, BLACK)
+    screen.blit(score_text, (20, 20))
+    bullet_text = small_font.render(f'Bullets {bullet}', True, BLACK)
+    screen.blit(bullet_text, (20, 40))
+    time_text = small_font.render(f'Time {time() - start_time:.1f}', True, BLACK)
+    screen.blit(time_text, (20, 60))
+
     pygame.display.update()
 
     clock.tick(FPS)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            finished = True
+            exit_program()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             gun.fire2_start(event)
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -273,10 +294,11 @@ while not finished:
     c = 0
     for b in balls:
         b.move()
-        for target in targets:
+        for i, target in enumerate(targets):
             if b.hittest(target) and target.live:
                 target.live = 0
                 score += target.hit()
+                targets.pop(i)
                 balls.pop(c)
                 break
         else:
@@ -287,5 +309,93 @@ while not finished:
 
     gun.power_up()
 
+final_time = round(time() - start_time, 1)
+final_score = int(10000 * score / (final_time * bullet))
 
-pygame.quit()
+player_name = ""
+name_entered = False
+
+while not name_entered:
+    screen.fill(WHITE)
+
+    row = []
+    row += [big_font.render(f'Final score is {final_score}', True, BLACK)]
+    row += [big_font.render(f'Enter your name', True, BLACK)]
+    row += [big_font.render(player_name, True, BLACK)]
+
+    y_offset = 150
+    for i in range(3):
+        width, height = row[i].get_size()
+        x_offset = (WIDTH - width) / 2
+        screen.blit(row[i], (x_offset, y_offset))
+
+        y_offset += height
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            exit_program()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                name_entered = True
+            elif event.key == pygame.K_BACKSPACE:
+                player_name = player_name[:-1]
+            else:
+                player_name += event.unicode
+
+    pygame.display.update()
+    clock.tick(FPS)
+
+try:
+    with open('leaderboard.json', 'r') as f:
+        leaderboard = json.load(f)
+    leaderboard['scores'].append({'name': player_name, 'score': final_score})
+    leaderboard['scores'] = sorted(leaderboard['scores'], key=lambda x: x.get('score'), reverse=True)
+    with open('leaderboard.json', 'w') as f:
+        json.dump(leaderboard, f, ensure_ascii=False, indent=4)
+except:
+    leaderboard = {'scores': [{'name': player_name, 'score': final_score}]}
+    with open('leaderboard.json', 'w') as f:
+        json.dump(leaderboard, f, ensure_ascii=False, indent=4)
+
+leaderboard_surface = pygame.Surface((800, 600))
+leaderboard_surface.fill(WHITE)
+title_text = big_font.render('Leaderboard', True, BLACK)
+
+width, height = title_text.get_size()
+
+x_offset = (WIDTH - width) / 2
+y_offset = 50
+
+leaderboard_surface.blit(title_text, (x_offset, y_offset))
+y_offset += 100
+rows = [None for _ in range(10)]
+leaderboard_length = 10 if len(leaderboard['scores']) > 10 else len(leaderboard['scores'])
+for i in range(leaderboard_length):
+    name, score = leaderboard['scores'][i]['name'], leaderboard['scores'][i]['score']
+    row = pygame.Surface((300, 30))
+    row.fill(WHITE)
+    name_surface = small_font.render(f'{name}', True, BLACK)
+    score_surface = small_font.render(f'{score}', True, BLACK)
+    row.blit(name_surface, (0, 0))
+    row.blit(score_surface, (200, 0))
+
+    rows[i] = row
+
+for row in rows:
+    if row is not None:
+        width, height = row.get_size()
+        x_offset = (WIDTH - width) / 2
+        leaderboard_surface.blit(row, (x_offset, y_offset))
+        y_offset += height
+    else:
+        break
+
+while True:
+    screen.blit(leaderboard_surface, (0, 0))
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            exit_program()
+
+    pygame.display.update()
+    clock.tick(FPS)
+
