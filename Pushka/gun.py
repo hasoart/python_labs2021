@@ -4,7 +4,7 @@ from random import randrange as rnd, choice
 import pygame
 
 
-FPS = 30
+FPS = 60
 
 RED = 0xFF0000
 BLUE = 0x0000FF
@@ -15,7 +15,11 @@ CYAN = 0x00FFCC
 BLACK = (0, 0, 0)
 WHITE = 0xFFFFFF
 GREY = 0x7D7D7D
+ORANGE = 0xFF7200
 GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
+
+pygame.font.init()
+score_font = pygame.font.SysFont('Comic Sans MS', 20)
 
 WIDTH = 800
 HEIGHT = 600
@@ -37,17 +41,31 @@ class Ball:
         self.vx = 0
         self.vy = 0
         self.color = choice(GAME_COLORS)
-        self.live = 30
+        self.is_moving = True
 
-    def move(self):
+    def move(self, dt=1):
         """Переместить мяч по прошествии единицы времени.
 
         Метод описывает перемещение мяча за один кадр перерисовки. То есть, обновляет значения
         self.x и self.y с учетом скоростей self.vx и self.vy, силы гравитации, действующей на мяч,
         и стен по краям окна (размер окна 800х600).
         """
-        self.x += self.vx
-        self.y -= self.vy
+        if self.y <= 550:
+            self.vy -= 1.2 * dt
+            self.y -= self.vy * dt
+            self.x += self.vx * dt
+            self.vx *= 0.99
+        else:
+            if self.vx ** 2 + self.vy ** 2 > 10:
+                self.vy = -self.vy / 2
+                self.vx = self.vx / 2
+                self.y = 549
+            else:
+                self.is_moving = False
+
+        if self.x > 780:
+            self.vx = -self.vx / 2
+            self.x = 779
 
     def draw(self):
         pygame.draw.circle(
@@ -118,7 +136,7 @@ class Gun:
         if event:
             self.an = math.atan2(event.pos[1]-450, event.pos[0]-20)
         if self.f2_on:
-            self.color = RED
+            self.color = ORANGE
         else:
             self.color = GREY
 
@@ -140,32 +158,76 @@ class Gun:
         if self.f2_on:
             if self.f2_power < 100:
                 self.f2_power += 1
-            self.color = RED
+            self.color = ORANGE
         else:
             self.color = GREY
 
 
 class Target:
     def __init__(self):
-        self.points = 0
         self.live = 1
         self.new_target()
 
     def new_target(self):
         """ Инициализация новой цели. """
         self.x = rnd(600, 780)
-        self.y = rnd(300, 550)
-        self.r = rnd(2, 50)
+        self.y = rnd(350, 550)
+        self.r = rnd(2, 10)
+        self.points = int(round(10 / self.r))
         self.color = RED
         self.live = 1
 
-    def hit(self, points=1):
+    def move(self, dt=1):
+        pass
+
+    def hit(self):
         """Попадание шарика в цель."""
-        self.points += points
+        return self.points
 
     def draw(self):
-        pygame.draw.circle(screen, self.color, (self.x, self.y), self.r)
-        pygame.draw.circle(screen, BLACK, (self.x, self.y), self.r, width=1)
+        if self.live > 0:
+            pygame.draw.circle(screen, self.color, (self.x, self.y), self.r)
+            pygame.draw.circle(screen, BLACK, (self.x, self.y), self.r, width=1)
+
+
+class TargetHorizontal(Target):
+    def __init__(self):
+        super(TargetHorizontal, self).__init__()
+        self.v = (-1) ** rnd(1, 3) * self.r ** 0.5
+
+    def new_target(self):
+        self.x = rnd(0, 800)
+        self.y = rnd(50, 200)
+        self.r = rnd(5, 20)
+        self.points = int(round(10 / self.r))
+        self.color = GREEN
+        self.live = 1
+
+    def move(self, dt=1):
+        self.x += self.v * dt
+
+        if not -100 < self.x < 880:
+            self.x = -99 if self.x >= 880 else 879
+
+
+class TargetVertical(Target):
+    def __init__(self):
+        super(TargetVertical, self).__init__()
+        self.v = (-1) ** rnd(1, 3) * self.r ** 0.5
+
+    def new_target(self):
+        self.x = rnd(680, 780)
+        self.y = rnd(0, 600)
+        self.r = rnd(5, 20)
+        self.points = int(math.ceil(10 / self.r))
+        self.color = BLUE
+        self.live = 1
+
+    def move(self, dt=1):
+        self.y += self.v * dt
+
+        if not -100 < self.y < 700:
+            self.y = -99 if self.x >= 700 else 699
 
 
 pygame.init()
@@ -175,15 +237,26 @@ balls = []
 
 clock = pygame.time.Clock()
 gun = Gun(screen)
-target = Target()
+targets = [TargetHorizontal() for _ in range(10)] +\
+          [TargetVertical() for _ in range(10)]
+score = 0
+
 finished = False
 
 while not finished:
     screen.fill(WHITE)
     gun.draw()
-    target.draw()
+
+    text = score_font.render(f'Score {score}', True, BLACK)
+    screen.blit(text, (20, 20))
+
+    for target in targets:
+        target.move()
+        target.draw()
+
     for b in balls:
         b.draw()
+
     pygame.display.update()
 
     clock.tick(FPS)
@@ -197,12 +270,22 @@ while not finished:
         elif event.type == pygame.MOUSEMOTION:
             gun.targetting(event)
 
+    c = 0
     for b in balls:
         b.move()
-        if b.hittest(target) and target.live:
-            target.live = 0
-            target.hit()
-            target.new_target()
+        for target in targets:
+            if b.hittest(target) and target.live:
+                target.live = 0
+                score += target.hit()
+                balls.pop(c)
+                break
+        else:
+            if not b.is_moving:
+                balls.pop(c)
+            else:
+                c += 1
+
     gun.power_up()
+
 
 pygame.quit()
